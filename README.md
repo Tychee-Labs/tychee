@@ -4,7 +4,7 @@
 
 ##  Overview
 
-Tychee is a comprehensive card tokenization SDK and rewards platform built on Stellar's Soroban smart contracts. It enables regulations-compliant tokenization of debit/credit cards while providing a gamified rewards experience for users and merchants.
+Tychee is a comprehensive card tokenization SDK and rewards platform. It enables regulations-compliant tokenization of debit/credit cards while providing a gamified rewards experience for users and merchants.
 
 ### Key Features
 
