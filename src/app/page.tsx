@@ -114,14 +114,14 @@ export default function HomePage() {
                 {/* Partners */}
                 <Link href="/partners">
                     <div className="premium-card group">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Users className="w-6 h-6 text-white" />
                         </div>
                         <h3 className="text-2xl font-bold mb-2">Partners</h3>
                         <p className="text-muted-foreground">
                             For merchants: integrate Tychee and reach engaged customers
                         </p>
-                        <div className="mt-4 text-sm text-indigo-400">
+                        <div className="mt-4 text-sm text-primary">
                             Partner Dashboard →
                         </div>
                     </div>
