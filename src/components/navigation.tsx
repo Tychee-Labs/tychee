@@ -27,11 +27,21 @@ export function Navigation() {
         <nav className="sticky top-0 z-40 w-full border-b border-border/40 glass backdrop-blur-lg">
             <div className="container mx-auto px-4">
                 <div className="flex h-16 items-center justify-between">
-                    <Link href="/" className="flex items-center space-x-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">T</span>
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <div className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src="/tychee_logo_without_text.png"
+                                alt="Tychee"
+                                className="h-8 w-auto relative z-10"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                            />
                         </div>
-                        <span className="text-xl font-bold gradient-text">Tychee</span>
+                        <span className="text-lg font-semibold text-foreground tracking-tight">
+                            Tychee
+                        </span>
                     </Link>
 
                     <div className="hidden md:flex items-center space-x-1">
