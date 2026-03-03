@@ -33,7 +33,7 @@ export default function RewardsPage() {
         { name: "Bronze", min: 0, color: "from-orange-600 to-orange-400" },
         { name: "Silver", min: 5000, color: "from-gray-400 to-gray-200" },
         { name: "Gold", min: 10000, color: "from-yellow-500 to-yellow-300" },
-        { name: "Platinum", min: 25000, color: "from-purple-500 to-pink-400" },
+        { name: "Platinum", min: 25000, color: "from-slate-600 to-slate-400" },
     ];
 
     const rewards: Reward[] = [
@@ -146,7 +146,7 @@ export default function RewardsPage() {
             )}
 
             {/* Points Balance Card */}
-            <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-500">
+            <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500">
                 <div className="relative z-10">
                     <div className="text-white/80 text-sm font-medium mb-2">Your Balance</div>
                     <div className="text-white text-6xl font-bold mb-4">{formatNumber(userPoints)}</div>

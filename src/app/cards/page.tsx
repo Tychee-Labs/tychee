@@ -245,7 +245,7 @@ export default function CardsPage() {
             case "mastercard": return "from-orange-500 to-red-600";
             case "rupay": return "from-green-500 to-teal-600";
             case "amex": return "from-gray-600 to-gray-800";
-            default: return "from-purple-600 to-pink-600";
+            default: return "from-orange-600 to-orange-800";
         }
     };
 
