@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, CreditCard as CreditCardIcon, Shield, Trash2, Loader2, AlertCircle, KeyRound, Lock, ExternalLink } from "lucide-react";
 import { useWallet } from "@/context/WalletContext";
 
@@ -51,6 +51,20 @@ export default function CardsPage() {
             }
         }
     }, [publicKey]);
+
+    // Close modal on Escape key
+    const handleEscKey = useCallback((e: KeyboardEvent) => {
+        if (e.key === "Escape" && showAddCard) {
+            setShowAddCard(false);
+            setError(null);
+            setFormData({ cardNumber: "", expiry: "", cvv: "", cardholderName: "" });
+        }
+    }, [showAddCard]);
+
+    useEffect(() => {
+        document.addEventListener("keydown", handleEscKey);
+        return () => document.removeEventListener("keydown", handleEscKey);
+    }, [handleEscKey]);
 
     // Format card number with spaces (SDK-style)
     const formatCardNumber = (value: string) => {
@@ -233,6 +247,7 @@ export default function CardsPage() {
 
     const handleRevokeCard = (cardId: string) => {
         if (!publicKey) return;
+        if (!confirm("Are you sure you want to revoke this card? This action cannot be undone.")) return;
 
         const updatedCards = cards.filter(card => card.id !== cardId);
         setCards(updatedCards);
@@ -263,6 +278,12 @@ export default function CardsPage() {
                     <p className="text-muted-foreground mt-2">
                         Securely tokenize your cards on Stellar blockchain with CoFT compliance
                     </p>
+                    {cards.length > 0 && (
+                        <div className="mt-2 inline-flex items-center gap-1 px-3 py-1 bg-primary/20 rounded-full text-xs font-medium text-primary">
+                            <CreditCardIcon className="w-3 h-3" />
+                            {cards.length} card{cards.length !== 1 ? "s" : ""} tokenized
+                        </div>
+                    )}
                 </div>
                 <button
                     onClick={() => setShowAddCard(true)}
@@ -326,6 +347,12 @@ export default function CardsPage() {
                                 <Lock className="w-3 h-3" />
                                 {card.encryptedSize ? `${card.encryptedSize}B` : "Encrypted"}
                             </div>
+                            {card.txHash && (
+                                <div className="flex items-center gap-1 text-green-300/80 text-xs mt-1" title={`TX: ${card.txHash}`}>
+                                    <ExternalLink className="w-3 h-3" />
+                                    On-chain
+                                </div>
+                            )}
                         </div>
 
                         {/* Card Number */}

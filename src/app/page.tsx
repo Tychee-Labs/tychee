@@ -5,7 +5,7 @@ export default function HomePage() {
     return (
         <div className="space-y-12">
             {/* Hero Section */}
-            <section className="text-center space-y-6 py-12">
+            <section className="text-center space-y-6 py-12 animate-fade-up">
                 <h1 className="text-6xl font-bold">
                     <span className="gradient-text">Tychee</span>
                 </h1>
@@ -27,13 +27,19 @@ export default function HomePage() {
                         View Rewards
                     </Link>
                 </div>
+                <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.04 1.92L3.85 6.57c-.43.25-.7.7-.7 1.2v9.35c0 .5.27.96.7 1.2l8.19 4.65a1.38 1.38 0 001.38 0l8.19-4.65c.43-.24.7-.7.7-1.2V7.77c0-.5-.27-.96-.7-1.2l-8.19-4.65a1.38 1.38 0 00-1.38 0z" />
+                    </svg>
+                    Powered by Stellar · Soroban Smart Contracts
+                </div>
             </section>
 
             {/* 6 Core Primitives Grid */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Cards Hub */}
                 <Link href="/cards">
-                    <div className="premium-card group">
+                    <div className="premium-card group animate-fade-up" style={{ animationDelay: "100ms" }}>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent/50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <CreditCard className="w-6 h-6 text-white" />
                         </div>
@@ -49,7 +55,7 @@ export default function HomePage() {
 
                 {/* Spends Hub */}
                 <Link href="/spends">
-                    <div className="premium-card group">
+                    <div className="premium-card group animate-fade-up" style={{ animationDelay: "150ms" }}>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <TrendingUp className="w-6 h-6 text-white" />
                         </div>
@@ -65,7 +71,7 @@ export default function HomePage() {
 
                 {/* Rewards */}
                 <Link href="/rewards">
-                    <div className="premium-card group">
+                    <div className="premium-card group animate-fade-up" style={{ animationDelay: "200ms" }}>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Gift className="w-6 h-6 text-white" />
                         </div>
@@ -81,7 +87,7 @@ export default function HomePage() {
 
                 {/* Store */}
                 <Link href="/store">
-                    <div className="premium-card group">
+                    <div className="premium-card group animate-fade-up" style={{ animationDelay: "250ms" }}>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Store className="w-6 h-6 text-white" />
                         </div>
@@ -97,7 +103,7 @@ export default function HomePage() {
 
                 {/* Vouchers */}
                 <Link href="/vouchers">
-                    <div className="premium-card group">
+                    <div className="premium-card group animate-fade-up" style={{ animationDelay: "300ms" }}>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Ticket className="w-6 h-6 text-white" />
                         </div>
@@ -113,7 +119,7 @@ export default function HomePage() {
 
                 {/* Partners */}
                 <Link href="/partners">
-                    <div className="premium-card group">
+                    <div className="premium-card group animate-fade-up" style={{ animationDelay: "350ms" }}>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                             <Users className="w-6 h-6 text-white" />
                         </div>
@@ -129,7 +135,7 @@ export default function HomePage() {
             </section>
 
             {/* Stats Section */}
-            <section className="glass-card text-center">
+            <section className="glass-card text-center animate-fade-up" style={{ animationDelay: "400ms" }}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
                         <div className="text-4xl font-bold text-gradient-primary">₹12.5M</div>

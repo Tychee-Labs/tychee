@@ -270,14 +270,12 @@
     content: '';
     @apply absolute inset-0 opacity-0;
     transition: opacity 0.5s var(--ease-smooth);
-    background: linear-gradient(
-      105deg,
-      transparent 40%,
-      hsl(14 89% 56% / 0.03) 45%,
-      hsl(14 89% 56% / 0.06) 50%,
-      hsl(14 89% 56% / 0.03) 55%,
-      transparent 60%
-    );
+    background: linear-gradient(105deg,
+        transparent 40%,
+        hsl(14 89% 56% / 0.03) 45%,
+        hsl(14 89% 56% / 0.06) 50%,
+        hsl(14 89% 56% / 0.03) 55%,
+        transparent 60%);
   }
 
   .card-shine:hover::before {
@@ -310,6 +308,7 @@
     from {
       transform: translateX(-100%);
     }
+
     to {
       transform: translateX(100%);
     }
@@ -354,17 +353,33 @@
   }
 
   /* Staggered animation delay utilities */
-  .stagger-1 { animation-delay: 0.1s; }
-  .stagger-2 { animation-delay: 0.2s; }
-  .stagger-3 { animation-delay: 0.3s; }
-  .stagger-4 { animation-delay: 0.4s; }
-  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-1 {
+    animation-delay: 0.1s;
+  }
+
+  .stagger-2 {
+    animation-delay: 0.2s;
+  }
+
+  .stagger-3 {
+    animation-delay: 0.3s;
+  }
+
+  .stagger-4 {
+    animation-delay: 0.4s;
+  }
+
+  .stagger-5 {
+    animation-delay: 0.5s;
+  }
 
   @keyframes float {
+
     0%,
     100% {
       transform: translateY(0px);
     }
+
     50% {
       transform: translateY(-10px);
     }
@@ -375,10 +390,12 @@
   }
 
   @keyframes pulse-slow {
+
     0%,
     100% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.5;
     }
@@ -393,6 +410,7 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -403,6 +421,7 @@
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -413,6 +432,7 @@
       opacity: 0;
       transform: scale(0.95);
     }
+
     to {
       opacity: 1;
       transform: scale(1);
@@ -424,6 +444,7 @@
       opacity: 0;
       transform: translateY(30px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -456,8 +477,19 @@
     backdrop-filter: blur(16px);
   }
 
+  /* Hide scrollbar utility */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
+
     .animate-fade-up,
     .animate-fade-in,
     .animate-scale-in,

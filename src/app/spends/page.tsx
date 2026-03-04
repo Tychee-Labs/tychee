@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Calendar, Filter, Download, AlertCircle, RefreshCw } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, getRelativeTime } from "@/lib/utils";
 import { useWallet } from "@/context/WalletContext";
 
 interface Transaction {
@@ -96,9 +96,13 @@ export default function SpendsPage() {
     };
 
     const handleRefresh = async () => {
+        if (!publicKey) return;
         setIsLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const savedTransactions = localStorage.getItem(`tychee_transactions_${publicKey}`);
+        if (savedTransactions) {
+            setTransactions(JSON.parse(savedTransactions));
+        }
         setIsLoading(false);
     };
 
@@ -193,7 +197,7 @@ export default function SpendsPage() {
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="capitalize font-medium">{category.category}</span>
                                         <span className="text-sm text-muted-foreground">
-                                            {formatCurrency(category.amount)} ({percentage}%)
+                                            {formatCurrency(category.amount)} ({percentage}%) · {category.count} tx
                                         </span>
                                     </div>
                                     <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -245,7 +249,7 @@ export default function SpendsPage() {
                                 </div>
                                 <div className="text-right">
                                     <div className="font-bold">{formatCurrency(tx.amount)}</div>
-                                    <div className="text-sm text-muted-foreground">{formatDate(tx.date)}</div>
+                                    <div className="text-sm text-muted-foreground">{getRelativeTime(tx.date)}</div>
                                 </div>
                             </div>
                         ))}

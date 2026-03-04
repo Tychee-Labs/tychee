@@ -1,11 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { Users, TrendingUp, DollarSign, BarChart3, Key, Webhook } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Users, TrendingUp, DollarSign, BarChart3, Key, Webhook, Check, Copy } from "lucide-react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export default function PartnersPage() {
     const [apiKey] = useState("tych_live_a3f8d9c2e1b4a6f7");
+    const [copied, setCopied] = useState(false);
+    const [webhookUrl, setWebhookUrl] = useState("");
+    const [webhookSaved, setWebhookSaved] = useState(false);
+
+    const handleCopyApiKey = () => {
+        navigator.clipboard.writeText(apiKey);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    // Load saved webhook URL on mount
+    useEffect(() => {
+        const saved = localStorage.getItem("tychee_webhook_url");
+        if (saved) setWebhookUrl(saved);
+    }, []);
+
+    const handleSaveWebhook = () => {
+        if (!webhookUrl.trim()) return;
+        localStorage.setItem("tychee_webhook_url", webhookUrl);
+        setWebhookSaved(true);
+        setTimeout(() => setWebhookSaved(false), 2000);
+    };
 
     const stats = [
         { label: "Total Revenue", value: formatCurrency(245000), change: "+12%", icon: DollarSign },
@@ -72,8 +95,15 @@ export default function PartnersPage() {
                         <code className="text-sm font-mono break-all">{apiKey}</code>
                     </div>
 
-                    <button className="mt-4 w-full px-4 py-2 bg-primary rounded-lg text-white font-medium hover:bg-primary/90 transition-colors">
-                        Copy API Key
+                    <button
+                        onClick={handleCopyApiKey}
+                        className="mt-4 w-full px-4 py-2 bg-primary rounded-lg text-white font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                    >
+                        {copied ? (
+                            <><Check className="w-4 h-4" /> Copied!</>
+                        ) : (
+                            <><Copy className="w-4 h-4" /> Copy API Key</>
+                        )}
                     </button>
                 </div>
 
@@ -92,11 +122,21 @@ export default function PartnersPage() {
                     <input
                         type="text"
                         placeholder="https://your-domain.com/webhook"
+                        value={webhookUrl}
+                        onChange={(e) => setWebhookUrl(e.target.value)}
                         className="w-full px-4 py-3 bg-muted border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     />
 
-                    <button className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-primary to-accent rounded-lg text-white font-medium hover:shadow-glow transition-all">
-                        Save Webhook
+                    <button
+                        onClick={handleSaveWebhook}
+                        disabled={!webhookUrl.trim()}
+                        className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-primary to-accent rounded-lg text-white font-medium hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {webhookSaved ? (
+                            <><Check className="w-4 h-4" /> Saved!</>
+                        ) : (
+                            "Save Webhook"
+                        )}
                     </button>
                 </div>
             </div>
@@ -148,9 +188,13 @@ export default function PartnersPage() {
                     </div>
                 </div>
 
-                <button className="mt-6 px-6 py-3 bg-gradient-to-r from-primary to-accent rounded-full text-white font-medium hover:shadow-glow transition-all">
+                <Link
+                    href="https://github.com/Tychee-Labs/tychee-core/tree/main/sdk"
+                    target="_blank"
+                    className="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-primary to-accent rounded-full text-white font-medium hover:shadow-glow transition-all"
+                >
                     View Full Documentation
-                </button>
+                </Link>
             </div>
         </div>
     );

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState, useEffect } from "react";
 import { Gift, Star, Zap, Trophy, ArrowRight, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
@@ -275,9 +277,16 @@ export default function RewardsPage() {
                     <Zap className="w-12 h-12 text-accent flex-shrink-0" />
                     <div>
                         <h3 className="font-bold text-lg mb-2">Earn Points by Tokenizing Cards!</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground mb-3">
                             Add your cards to Tychee and earn 100 bonus points per card. Use them for transactions to earn even more!
                         </p>
+                        <Link
+                            href="/cards"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-accent rounded-lg text-white text-sm font-medium hover:shadow-glow transition-all"
+                        >
+                            Go to Cards Hub
+                            <ArrowRight className="w-4 h-4" />
+                        </Link>
                     </div>
                 </div>
             </div>
