@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MapPin, Search, Star, Heart } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import Image from "next/image";
 
 interface Product {
     id: string;
@@ -63,7 +62,25 @@ export default function StorePage() {
             rating: 4.6,
             distance: "0.8 km",
         },
+        {
+            id: "5",
+            name: "Weekend Getaway - Lonavala",
+            merchant: "MakeMyTrip",
+            price: 4999,
+            originalPrice: 7499,
+            category: "travel",
+            rating: 4.7,
+            distance: "5.0 km",
+        },
     ];
+
+    const filteredProducts = products.filter((product) => {
+        const matchesSearch = searchQuery === "" ||
+            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            product.merchant.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <div className="space-y-8">
@@ -113,7 +130,7 @@ export default function StorePage() {
 
             {/* Products Grid (Merchant discovery cards) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => {
+                {filteredProducts.length > 0 ? filteredProducts.map((product) => {
                     const discount = product.originalPrice
                         ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
                         : 0;
@@ -175,7 +192,13 @@ export default function StorePage() {
                             </div>
                         </div>
                     );
-                })}
+                }) : (
+                    <div className="col-span-full text-center py-16">
+                        <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                        <h3 className="text-xl font-bold mb-2">No products found</h3>
+                        <p className="text-muted-foreground">Try adjusting your search or category filters</p>
+                    </div>
+                )}
             </div>
 
             {/* Load More */}

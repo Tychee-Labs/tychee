@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Ticket, Copy, Check, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ export default function VouchersPage() {
             discount: 50,
             discountType: "fixed",
             minPurchase: 200,
-            validUntil: "2026-02-28",
+            validUntil: "2026-09-30",
             merchant: "Zomato",
             used: false,
         },
@@ -41,7 +42,7 @@ export default function VouchersPage() {
             discount: 20,
             discountType: "percent",
             minPurchase: 500,
-            validUntil: "2026-01-31",
+            validUntil: "2026-06-30",
             merchant: "Swiggy",
             used: false,
         },
@@ -53,7 +54,7 @@ export default function VouchersPage() {
             discount: 100,
             discountType: "fixed",
             minPurchase: 400,
-            validUntil: "2026-03-15",
+            validUntil: "2026-12-31",
             merchant: "BookMyShow",
             used: true,
         },
@@ -147,10 +148,10 @@ export default function VouchersPage() {
                             {/* Status & Expiry */}
                             <div className="flex items-center justify-between text-sm">
                                 <div className={`px-3 py-1 rounded-full font-medium ${voucher.used
-                                        ? 'bg-muted text-muted-foreground'
-                                        : isExpiringSoon
-                                            ? 'bg-destructive/20 text-destructive'
-                                            : 'bg-green-500/20 text-green-400'
+                                    ? 'bg-muted text-muted-foreground'
+                                    : isExpiringSoon
+                                        ? 'bg-destructive/20 text-destructive'
+                                        : 'bg-green-500/20 text-green-400'
                                     }`}>
                                     {voucher.used ? 'Used' : isExpiringSoon ? 'Expiring Soon' : 'Active'}
                                 </div>
@@ -176,9 +177,9 @@ export default function VouchersPage() {
                 <p className="text-muted-foreground mb-6">
                     Earn points through transactions and redeem them for exclusive vouchers
                 </p>
-                <button className="px-8 py-3 bg-gradient-to-r from-primary to-accent rounded-full text-white font-medium hover:shadow-glow transition-all">
+                <Link href="/rewards" className="inline-block px-8 py-3 bg-gradient-to-r from-primary to-accent rounded-full text-white font-medium hover:shadow-glow transition-all">
                     Browse Rewards
-                </button>
+                </Link>
             </div>
         </div>
     );
