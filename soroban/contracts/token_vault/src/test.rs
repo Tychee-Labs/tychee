@@ -40,7 +40,7 @@ fn test_store_and_retrieve_token() {
     let metadata = client.store_token(
         &user,
         &encrypted_payload,
-        &token_hash,
+        &token_hash.clone().into(),
         &last_4_digits,
         &card_network,
         &expires_at,
@@ -78,7 +78,7 @@ fn test_store_multiple_cards() {
     let network1 = String::from_str(&env, "visa");
     let expires_at = env.ledger().timestamp() + 31536000;
     
-    client.store_token(&user, &payload1, &hash1, &last4_1, &network1, &expires_at);
+    client.store_token(&user, &payload1, &hash1.clone().into(), &last4_1, &network1, &expires_at);
     assert_eq!(client.get_token_count(), 1);
     assert_eq!(client.get_user_token_count(&user), 1);
     
@@ -88,7 +88,7 @@ fn test_store_multiple_cards() {
     let last4_2 = String::from_str(&env, "5678");
     let network2 = String::from_str(&env, "mastercard");
     
-    client.store_token(&user, &payload2, &hash2, &last4_2, &network2, &expires_at);
+    client.store_token(&user, &payload2, &hash2.clone().into(), &last4_2, &network2, &expires_at);
     assert_eq!(client.get_token_count(), 2);
     assert_eq!(client.get_user_token_count(&user), 2);
     
@@ -98,7 +98,7 @@ fn test_store_multiple_cards() {
     let last4_3 = String::from_str(&env, "9012");
     let network3 = String::from_str(&env, "rupay");
     
-    client.store_token(&user, &payload3, &hash3, &last4_3, &network3, &expires_at);
+    client.store_token(&user, &payload3, &hash3.clone().into(), &last4_3, &network3, &expires_at);
     assert_eq!(client.get_token_count(), 3);
     assert_eq!(client.get_user_token_count(&user), 3);
     
@@ -141,10 +141,10 @@ fn test_store_duplicate_hash_rejected() {
     let expires_at = env.ledger().timestamp() + 31536000;
     
     // Store first token
-    client.store_token(&user, &encrypted_payload, &token_hash, &last_4_digits, &card_network, &expires_at);
+    client.store_token(&user, &encrypted_payload, &token_hash.clone().into(), &last_4_digits, &card_network, &expires_at);
     
     // Attempt to store with same hash — should panic
-    client.store_token(&user, &encrypted_payload, &token_hash, &last_4_digits, &card_network, &expires_at);
+    client.store_token(&user, &encrypted_payload, &token_hash.clone().into(), &last_4_digits, &card_network, &expires_at);
 }
 
 #[test]
@@ -167,14 +167,14 @@ fn test_revoke_token() {
     let network1 = String::from_str(&env, "mastercard");
     let expires_at = env.ledger().timestamp() + 31536000;
     
-    client.store_token(&user, &payload1, &hash1, &last4_1, &network1, &expires_at);
+    client.store_token(&user, &payload1, &hash1.clone().into(), &last4_1, &network1, &expires_at);
     
     let payload2 = Bytes::from_slice(&env, &[5, 6, 7, 8]);
     let hash2 = BytesN::from_array(&env, &[2u8; 32]);
     let last4_2 = String::from_str(&env, "5678");
     let network2 = String::from_str(&env, "visa");
     
-    client.store_token(&user, &payload2, &hash2, &last4_2, &network2, &expires_at);
+    client.store_token(&user, &payload2, &hash2.clone().into(), &last4_2, &network2, &expires_at);
     assert_eq!(client.get_token_count(), 2);
     assert_eq!(client.get_user_token_count(&user), 2);
     
@@ -215,7 +215,7 @@ fn test_expired_token() {
     // Set expiration to 1 second from now
     let expires_at = env.ledger().timestamp() + 1;
     
-    client.store_token(&user, &encrypted_payload, &token_hash, &last_4_digits, &card_network, &expires_at);
+    client.store_token(&user, &encrypted_payload, &token_hash.clone().into(), &last_4_digits, &card_network, &expires_at);
     
     // Fast forward time by 2 seconds
     env.ledger().with_mut(|li| {
@@ -270,7 +270,7 @@ fn test_store_while_paused() {
     let expires_at = env.ledger().timestamp() + 31536000;
     
     // Should panic — contract is paused
-    client.store_token(&user, &encrypted_payload, &token_hash, &last_4_digits, &card_network, &expires_at);
+    client.store_token(&user, &encrypted_payload, &token_hash.clone().into(), &last_4_digits, &card_network, &expires_at);
 }
 
 #[test]
@@ -292,7 +292,7 @@ fn test_events() {
     let card_network = String::from_str(&env, "visa");
     let expires_at = env.ledger().timestamp() + 31536000;
     
-    client.store_token(&user, &encrypted_payload, &token_hash, &last_4_digits, &card_network, &expires_at);
+    client.store_token(&user, &encrypted_payload, &token_hash.clone().into(), &last_4_digits, &card_network, &expires_at);
     
     // Token was stored
     assert_eq!(client.get_token_count(), 1);
@@ -318,7 +318,7 @@ fn test_retrieve_all_tokens_empty() {
     let net = String::from_str(&env, "visa");
     let expires_at = env.ledger().timestamp() + 31536000;
     
-    client.store_token(&user, &payload, &hash, &last4, &net, &expires_at);
+    client.store_token(&user, &payload, &hash.clone().into(), &last4, &net, &expires_at);
     client.revoke_token(&user, &hash);
     
     // User's active token list should be empty after revocation

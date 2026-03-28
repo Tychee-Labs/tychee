@@ -56,12 +56,17 @@ impl TokenVault {
         env: Env,
         user: Address,
         encrypted_payload: Bytes,
-        token_hash: BytesN<32>,
+        token_hash: Bytes,
         last_4_digits: String,
         card_network: String,
         expires_at: u64,
     ) -> TokenMetadata {
         user.require_auth();
+
+        // Convert dynamic Bytes to strict BytesN<32> array
+        let token_hash_bytesn: BytesN<32> = token_hash.try_into().unwrap_or_else(|_| {
+            panic!("token_hash must be exactly 32 bytes");
+        });
 
         // Check if contract is paused
         if Self::is_paused(env.clone()) {
@@ -69,7 +74,7 @@ impl TokenVault {
         }
 
         // Check if a token with this exact hash already exists for this user
-        let token_key = DataKey::TokenData(user.clone(), token_hash.clone());
+        let token_key = DataKey::TokenData(user.clone(), token_hash_bytesn.clone());
         if env.storage().persistent().has(&token_key) {
             panic!("Token with this hash already exists for this user");
         }
@@ -83,7 +88,7 @@ impl TokenVault {
         let metadata = TokenMetadata {
             user: user.clone(),
             encrypted_payload: encrypted_payload.clone(),
-            token_hash: token_hash.clone(),
+            token_hash: token_hash_bytesn.clone(),
             last_4_digits: last_4_digits.clone(),
             card_network: card_network.clone(),
             status: String::from_str(&env, "active"),
@@ -101,7 +106,7 @@ impl TokenVault {
             .persistent()
             .get(&list_key)
             .unwrap_or(Vec::new(&env));
-        token_list.push_back(token_hash.clone());
+        token_list.push_back(token_hash_bytesn.clone());
         env.storage().persistent().set(&list_key, &token_list);
 
         // Set permission (once per user, idempotent)
@@ -117,7 +122,7 @@ impl TokenVault {
         // Emit event
         env.events().publish(
             (symbol_short!("store"), user.clone()),
-            (token_hash, card_network, current_time)
+            (token_hash_bytesn, card_network, current_time)
         );
 
         metadata
