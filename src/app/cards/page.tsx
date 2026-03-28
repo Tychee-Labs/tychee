@@ -7,7 +7,7 @@ import { useWallet } from "@/context/WalletContext";
 // Import browser-compatible SDK wrapper (mirrors @tychee/sdk API)
 import { CardTokenizer, ClientCrypto, type CardData } from "@/lib/tychee-client";
 // Import Soroban client for on-chain storage
-import { storeCardOnChain, type StoreTokenParams } from "@/lib/soroban-client";
+import { storeCardOnChain, revokeCardOnChain, isOnChainConfigured, type StoreTokenParams } from "@/lib/soroban-client";
 
 interface StoredCard {
     id: string;
@@ -33,6 +33,7 @@ export default function CardsPage() {
     const [cards, setCards] = useState<StoredCard[]>([]);
     const [showAddCard, setShowAddCard] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingCards, setIsLoadingCards] = useState(false);
     const [loadingStep, setLoadingStep] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState<CardFormData>({
@@ -42,7 +43,7 @@ export default function CardsPage() {
         cardholderName: "",
     });
 
-    // Load saved cards from localStorage on mount
+    // Load saved cards from localStorage on mount (cache / fallback when on-chain is not configured)
     useEffect(() => {
         if (publicKey) {
             const savedCards = localStorage.getItem(`tychee_cards_${publicKey}`);
@@ -147,7 +148,7 @@ export default function CardsPage() {
                 network: network,
             };
 
-            // Step 4: Derive user-owned encryption key from wallet
+            // Step 4: Derive user-owned encryption key from wallet signature
             setLoadingStep("Deriving encryption key from wallet...");
             const encryptionKey = await deriveEncryptionKey();
 
@@ -168,10 +169,9 @@ export default function CardsPage() {
             const expiresAt = Math.floor(expiryDate.getTime() / 1000);
 
             // Step 6: Store on-chain with wallet signature
-            // This WILL prompt the wallet for approval
             let txHash: string | undefined;
 
-            if (kit) {
+            if (kit && isOnChainConfigured()) {
                 setLoadingStep("Requesting wallet signature for on-chain storage...");
 
                 const storeParams: StoreTokenParams = {
@@ -183,26 +183,29 @@ export default function CardsPage() {
                     expiresAt,
                 };
 
-                try {
-                    const result = await storeCardOnChain(kit, storeParams);
+                const result = await storeCardOnChain(kit, storeParams);
 
-                    if (!result.success) {
-                        if (result.error?.includes("cancelled") || result.error?.includes("rejected")) {
-                            setError("Transaction cancelled. Wallet signature required to store card on-chain.");
-                            return;
-                        }
-                        // If on-chain storage fails, fall back to local storage with warning
-                        console.warn("On-chain storage failed, using local storage:", result.error);
-                    } else {
-                        txHash = result.txHash;
-                        console.log("Card stored on-chain! TX:", txHash);
+                if (!result.success) {
+                    if (result.error?.includes("cancelled") || result.error?.includes("rejected")) {
+                        setError("Transaction cancelled. Wallet signature required to store card on-chain.");
+                        return;
                     }
-                } catch (chainError: any) {
-                    console.warn("On-chain storage error, using local storage:", chainError.message);
+                    // On-chain is configured but failed — show error, do NOT silently fall back
+                    setError(`On-chain storage failed: ${result.error}. Please try again.`);
+                    return;
                 }
+
+                txHash = result.txHash;
+                console.log("Card stored on-chain! TX:", txHash);
+            } else if (!isOnChainConfigured()) {
+                // On-chain not configured — store locally with a warning in the console
+                console.warn(
+                    "On-chain storage not configured (NEXT_PUBLIC_SOROBAN_CONTRACT_ADDRESS / NEXT_PUBLIC_SOROBAN_RPC_URL not set). " +
+                    "Card metadata will be stored in localStorage only."
+                );
             }
 
-            // Step 7: Create token metadata for storage
+            // Step 7: Create token metadata
             setLoadingStep("Saving card metadata...");
             const newCard: StoredCard = {
                 id: tokenHash.substring(0, 16),
@@ -216,7 +219,7 @@ export default function CardsPage() {
                 txHash: txHash,
             };
 
-            // Save to state and localStorage (backup/cache)
+            // Save to state and localStorage (serves as local cache for on-chain data)
             const updatedCards = [...cards, newCard];
             setCards(updatedCards);
             localStorage.setItem(`tychee_cards_${publicKey}`, JSON.stringify(updatedCards));
@@ -245,13 +248,48 @@ export default function CardsPage() {
         }
     };
 
-    const handleRevokeCard = (cardId: string) => {
+    const handleRevokeCard = async (cardId: string) => {
         if (!publicKey) return;
         if (!confirm("Are you sure you want to revoke this card? This action cannot be undone.")) return;
 
-        const updatedCards = cards.filter(card => card.id !== cardId);
+        const card = cards.find(c => c.id === cardId);
+
+        // If the card was stored on-chain, revoke it on-chain first
+        if (card?.txHash && card?.tokenHash && kit && isOnChainConfigured()) {
+            setIsLoading(true);
+            setLoadingStep("Revoking card on-chain...");
+
+            try {
+                const result = await revokeCardOnChain(kit, publicKey, card.tokenHash);
+                if (!result.success) {
+                    if (result.error?.includes("cancelled") || result.error?.includes("rejected")) {
+                        setError("Revocation cancelled. Wallet signature required.");
+                        setIsLoading(false);
+                        setLoadingStep("");
+                        return;
+                    }
+                    setError(`On-chain revocation failed: ${result.error}`);
+                    setIsLoading(false);
+                    setLoadingStep("");
+                    return;
+                }
+                console.log("Card revoked on-chain! TX:", result.txHash);
+            } catch (err: any) {
+                console.error("On-chain revocation error:", err);
+                setError(`Revocation error: ${err.message}`);
+                setIsLoading(false);
+                setLoadingStep("");
+                return;
+            }
+        }
+
+        // Remove from local state and cache
+        const updatedCards = cards.filter(c => c.id !== cardId);
         setCards(updatedCards);
         localStorage.setItem(`tychee_cards_${publicKey}`, JSON.stringify(updatedCards));
+
+        setIsLoading(false);
+        setLoadingStep("");
     };
 
     const getNetworkColor = (network: string) => {
@@ -312,6 +350,23 @@ export default function CardsPage() {
                 </div>
             )}
 
+            {/* On-chain config warning */}
+            {isConnected && !isOnChainConfigured() && (
+                <div className="glass-card border-yellow-500/30 bg-yellow-500/10">
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-6 h-6 text-yellow-500" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg text-yellow-400">On-Chain Storage Not Configured</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Set <code className="bg-muted px-1 rounded">NEXT_PUBLIC_SOROBAN_CONTRACT_ADDRESS</code> and <code className="bg-muted px-1 rounded">NEXT_PUBLIC_SOROBAN_RPC_URL</code> in your environment to enable on-chain card storage. Cards will be stored in browser storage only.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Security Banner - SDK Info */}
             <div className="glass-card border-accent/30">
                 <div className="flex items-start gap-4">
@@ -326,6 +381,22 @@ export default function CardsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Error banner */}
+            {error && (
+                <div className="glass-card border-red-500/30 bg-red-500/10">
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-6 h-6 text-red-500" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-lg text-red-400">Error</h3>
+                            <p className="text-sm text-red-300 mt-1">{error}</p>
+                        </div>
+                        <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300 text-lg font-bold">✕</button>
+                    </div>
+                </div>
+            )}
 
             {/* Cards List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -351,6 +422,11 @@ export default function CardsPage() {
                                 <div className="flex items-center gap-1 text-green-300/80 text-xs mt-1" title={`TX: ${card.txHash}`}>
                                     <ExternalLink className="w-3 h-3" />
                                     On-chain
+                                </div>
+                            )}
+                            {!card.txHash && (
+                                <div className="flex items-center gap-1 text-yellow-300/80 text-xs mt-1">
+                                    Local only
                                 </div>
                             )}
                         </div>
@@ -381,6 +457,7 @@ export default function CardsPage() {
                                 onClick={() => handleRevokeCard(card.id)}
                                 className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-red-500/40 transition-colors"
                                 title="Revoke Card"
+                                disabled={isLoading}
                             >
                                 <Trash2 className="w-4 h-4 text-white" />
                             </button>

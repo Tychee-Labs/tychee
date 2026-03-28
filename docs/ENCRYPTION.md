@@ -7,32 +7,46 @@ Tychee follows **pure web3 principles** - users own their encryption keys, deriv
 ## Encryption Flow
 
 ```
-User's Stellar Keypair (SXXX...)
+User's Stellar Wallet (Freighter, Albedo, etc.)
          ↓
-    SHA-256 Hash
+    Sign Deterministic Challenge
+    ("tychee:card-encryption-key-derivation:<pubkey>:v2")
          ↓
-   256-bit AES Key (client-side)
+    SHA-256(signature)
+         ↓
+   256-bit AES Key (client-side, derived from wallet signature)
          ↓
   AES-256-GCM Encryption
          ↓
-  Encrypted Payload → Soroban Smart Contract
+  Encrypted Payload → Soroban Smart Contract (keyed by user + token_hash)
 ```
 
 ## Key Derivation
 
-### Client-Side (Browser)
+### Client-Side (Browser — Wallet Signature)
 ```typescript
-// User's secret key (from wallet)
-const secretKey = "SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-
-// Derive encryption key (SHA-256 of secret key)
-const encryptionKey = await RingCompatibleCrypto.deriveUserKey(secretKey);
+// Derive encryption key from wallet signature (requires wallet approval)
+// The wallet's private key signs a deterministic challenge message.
+// Only the wallet owner can produce this signature.
+const challenge = `tychee:card-encryption-key-derivation:${publicKey}:v2`;
+const { signedTxXdr } = await kit.signTransaction(challenge, {
+    address: publicKey,
+    networkPassphrase: "Test SDF Network ; September 2015",
+});
+const encryptionKey = SHA256(signedTxXdr);  // 256-bit AES key
 
 // Encrypt card data
 const { encryptedPayload, tokenHash } = await CardTokenizer.encryptCard(
   cardData,
   encryptionKey
 );
+```
+
+### Server-Side SDK (Secret Key)
+```typescript
+// When using the SDK server-side (e.g. in a backend),
+// the user's secret key is available directly.
+const encryptionKey = await RingCompatibleCrypto.deriveUserKey(secretKey);
 ```
 
 ### Why No Master Key?
@@ -82,19 +96,25 @@ const encrypted = RingCompatibleCrypto.encrypt(plaintext, userKey);
 // Format: IV (12 bytes) + Ciphertext + Auth Tag (16 bytes)
 ```
 
-### 3. On-Chain Storage (Soroban)
+### 3. On-Chain Storage (Soroban — Multi-Card)
 
 ```rust
-// Soroban contract expects encrypted bytes
+// Soroban contract stores multiple cards per user,
+// each identified by a unique token_hash.
 pub fn store_token(
     env: Env,
     user: Address,
     encrypted_payload: Bytes,  // Already encrypted client-side
-    token_hash: BytesN<32>,
+    token_hash: BytesN<32>,    // Unique per card
     // ...
 ) -> TokenMetadata {
-    // Store encrypted payload on-chain
-    env.storage().persistent().set(&DataKey::TokenData(user.clone()), &metadata);
+    // Store encrypted payload keyed by (user, token_hash)
+    env.storage().persistent().set(
+        &DataKey::TokenData(user.clone(), token_hash.clone()),
+        &metadata
+    );
+    // Append hash to user's token list for enumeration
+    // ...
 }
 ```
 
@@ -132,7 +152,7 @@ pub fn store_token(
 
 ```rust
 // Soroban contract enforces wallet-based access control
-pub fn retrieve_token(env: Env, user: Address) -> Option<TokenMetadata> {
+pub fn retrieve_token(env: Env, user: Address, token_hash: BytesN<32>) -> Option<TokenMetadata> {
     user.require_auth();  // Only user can retrieve
     
     let permission: Option<Permission> = 
@@ -142,6 +162,12 @@ pub fn retrieve_token(env: Env, user: Address) -> Option<TokenMetadata> {
         Some(Permission::Owner) => { /* allow */ },
         _ => { /* deny */ }
     }
+}
+
+// Retrieve all cards for a user
+pub fn retrieve_all_tokens(env: Env, user: Address) -> Vec<TokenMetadata> {
+    user.require_auth();
+    // Returns all active cards for the user
 }
 ```
 
@@ -216,7 +242,7 @@ This is **by design** - true self-custody means true responsibility.
 
 | Layer | Algorithm | Key Size | Use Case |
 |-------|-----------|----------|----------|
-| Key Derivation (Browser) | Argon2id | 256-bit | Wallet seed → Encryption key |
+| Key Derivation (Browser) | Wallet Signature + SHA-256 | 256-bit | Wallet signature → Encryption key |
 | Key Derivation (Server) | SHA-256 | 256-bit | Secret key → Encryption key |
 | Symmetric Encryption | AES-GCM | 256-bit | Card data encryption |
 | Authentication | Ed25519 | 256-bit | Stellar signatures |
@@ -252,13 +278,25 @@ const card: CardData = {
 // 3. Tokenize (encryption happens client-side)
 const metadata = await sdk.storeCard(card);
 // ✅ Card encrypted with key derived from user's secret
-// ✅ Encrypted payload stored on Soroban
+// ✅ Encrypted payload stored on Soroban (keyed by user + hash)
+// ✅ Multiple cards per wallet supported
 // ✅ User can decrypt later with same secret key
 
-// 4. Retrieve and decrypt (only user can do this)
-const token = await sdk.retrieveCard();
+// 4. Store another card (multi-card support)
+const metadata2 = await sdk.storeCard(anotherCard);
+// ✅ Same user, different card — both stored on-chain
+
+// 5. Retrieve all cards
+const allCards = await sdk.retrieveAllCards();
+
+// 6. Retrieve and decrypt a specific card
+const token = await sdk.retrieveCard(metadata.tokenHash);
 const decryptedCard = await sdk.decryptCard(token.encryptedPayload);
 // ✅ Only works if user has the secret key
+
+// 7. Revoke a specific card
+await sdk.revokeCard(metadata2.tokenHash);
+// ✅ Only the specified card is revoked; others remain active
 ```
 
 ### Account Abstraction with User Keys
@@ -284,10 +322,11 @@ await sdk.initialize('SXXX...');
 
 - [x] No server-side master keys
 - [x] User-owned encryption keys
-- [x] Keys derived from wallet secret
+- [x] Keys derived from wallet signature (browser) / secret key (server)
 - [x] Client-side encryption
 - [x] AES-256-GCM authenticated encryption
-- [x] Secure key derivation (SHA-256/Argon2)
+- [x] Secure key derivation (SHA-256 of wallet signature)
+- [x] Multi-card per wallet support
 - [x] Access control on-chain
 - [x] Audit trail via events
 - [x] RBI CoFT compliant

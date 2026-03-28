@@ -42,6 +42,7 @@ export interface CardData {
  */
 export interface TokenMetadata {
     userId: string;
+    tokenId: string;          // Unique identifier (token hash hex) for multi-card support
     tokenHash: string;
     encryptedPayload: Uint8Array;
     last4Digits: string;

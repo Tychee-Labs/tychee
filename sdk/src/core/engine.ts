@@ -56,6 +56,7 @@ export class TycheeSDK {
 
     /**
      * Tokenize and store a card on-chain
+     * Supports multiple cards per wallet — each card is identified by its unique tokenHash.
      */
     async storeCard(cardData: CardData): Promise<TokenMetadata> {
         if (!this.userKeypair) {
@@ -138,6 +139,7 @@ export class TycheeSDK {
             // Return metadata
             const metadata: TokenMetadata = {
                 userId: this.userKeypair.publicKey(),
+                tokenId: tokenHash.toString('hex'),
                 tokenHash: tokenHash.toString('hex'),
                 encryptedPayload: new Uint8Array(encryptedPayload),
                 last4Digits,
@@ -156,15 +158,16 @@ export class TycheeSDK {
     }
 
     /**
-     * Retrieve encrypted card token from on-chain
+     * Retrieve a specific encrypted card token from on-chain by its tokenHash
      */
-    async retrieveCard(): Promise<TokenMetadata | null> {
+    async retrieveCard(tokenHash: string): Promise<TokenMetadata | null> {
         if (!this.userKeypair) {
             throw new Error('SDK not initialized');
         }
 
         try {
             const userAddress = new Address(this.userKeypair.publicKey());
+            const hashBytes = nativeToScVal(Buffer.from(tokenHash, 'hex'), { type: 'bytes' });
 
             const account = await this.server.loadAccount(this.userKeypair.publicKey());
 
@@ -175,7 +178,7 @@ export class TycheeSDK {
                     : Networks.PUBLIC,
             })
                 .addOperation(
-                    this.contract.call('retrieve_token', userAddress.toScVal())
+                    this.contract.call('retrieve_token', userAddress.toScVal(), hashBytes)
                 )
                 .setTimeout(30)
                 .build();
@@ -184,11 +187,10 @@ export class TycheeSDK {
 
             const response = await this.server.submitTransaction(transaction);
 
-            // Parse response (simplified - actual parsing depends on Soroban response format)
             console.log('Card retrieved:', response.hash);
 
-            // In production, parse the actual response data
-            return null; // Placeholder
+            // In production, parse the actual Soroban response data
+            return null; // Placeholder — actual parsing depends on Soroban response format
         } catch (error) {
             console.error('Error retrieving card:', error);
             return null;
@@ -196,9 +198,9 @@ export class TycheeSDK {
     }
 
     /**
-     * Revoke card token
+     * Retrieve all encrypted card tokens for the current user from on-chain
      */
-    async revokeCard(): Promise<TransactionResult> {
+    async retrieveAllCards(): Promise<TokenMetadata[]> {
         if (!this.userKeypair) {
             throw new Error('SDK not initialized');
         }
@@ -215,7 +217,47 @@ export class TycheeSDK {
                     : Networks.PUBLIC,
             })
                 .addOperation(
-                    this.contract.call('revoke_token', userAddress.toScVal())
+                    this.contract.call('retrieve_all_tokens', userAddress.toScVal())
+                )
+                .setTimeout(30)
+                .build();
+
+            transaction.sign(this.userKeypair);
+
+            const response = await this.server.submitTransaction(transaction);
+
+            console.log('All cards retrieved:', response.hash);
+
+            // In production, parse the actual Soroban response data
+            return []; // Placeholder — actual parsing depends on Soroban response format
+        } catch (error) {
+            console.error('Error retrieving all cards:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Revoke a specific card token by its tokenHash
+     */
+    async revokeCard(tokenHash: string): Promise<TransactionResult> {
+        if (!this.userKeypair) {
+            throw new Error('SDK not initialized');
+        }
+
+        try {
+            const userAddress = new Address(this.userKeypair.publicKey());
+            const hashBytes = nativeToScVal(Buffer.from(tokenHash, 'hex'), { type: 'bytes' });
+
+            const account = await this.server.loadAccount(this.userKeypair.publicKey());
+
+            const transaction = new TransactionBuilder(account, {
+                fee: BASE_FEE,
+                networkPassphrase: this.config.stellarNetwork === 'testnet'
+                    ? Networks.TESTNET
+                    : Networks.PUBLIC,
+            })
+                .addOperation(
+                    this.contract.call('revoke_token', userAddress.toScVal(), hashBytes)
                 )
                 .setTimeout(30)
                 .build();

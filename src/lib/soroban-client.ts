@@ -19,6 +19,13 @@ const SOROBAN_RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || "https://soro
 const TOKEN_VAULT_ADDRESS = process.env.NEXT_PUBLIC_SOROBAN_CONTRACT_ADDRESS || "";
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 
+/**
+ * Returns true if on-chain storage is properly configured
+ */
+export function isOnChainConfigured(): boolean {
+    return TOKEN_VAULT_ADDRESS.length > 0 && SOROBAN_RPC_URL.length > 0;
+}
+
 export interface StoreTokenParams {
     publicKey: string;
     encryptedPayload: Uint8Array;
@@ -92,6 +99,61 @@ export async function buildStoreTokenTransaction(
 }
 
 /**
+ * Build a Soroban transaction for revoking a specific card token
+ */
+export async function buildRevokeTokenTransaction(
+    publicKey: string,
+    tokenHash: string
+): Promise<string> {
+    const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+    const contract = new Contract(TOKEN_VAULT_ADDRESS);
+
+    const account = await server.getAccount(publicKey);
+
+    const userAddress = new Address(publicKey);
+    const hashBytes = nativeToScVal(hexToBytes(tokenHash), { type: "bytes" });
+
+    const transaction = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE,
+    })
+        .addOperation(
+            contract.call("revoke_token", userAddress.toScVal(), hashBytes)
+        )
+        .setTimeout(30)
+        .build();
+
+    const preparedTx = await server.prepareTransaction(transaction);
+    return preparedTx.toXDR();
+}
+
+/**
+ * Build a Soroban transaction for retrieving all tokens for a user
+ */
+export async function buildRetrieveAllTokensTransaction(
+    publicKey: string
+): Promise<string> {
+    const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+    const contract = new Contract(TOKEN_VAULT_ADDRESS);
+
+    const account = await server.getAccount(publicKey);
+    const userAddress = new Address(publicKey);
+
+    const transaction = new TransactionBuilder(account, {
+        fee: BASE_FEE,
+        networkPassphrase: NETWORK_PASSPHRASE,
+    })
+        .addOperation(
+            contract.call("retrieve_all_tokens", userAddress.toScVal())
+        )
+        .setTimeout(30)
+        .build();
+
+    const preparedTx = await server.prepareTransaction(transaction);
+    return preparedTx.toXDR();
+}
+
+/**
  * Sign and submit a transaction using Stellar Wallets Kit
  */
 export async function signAndSubmitTransaction(
@@ -146,6 +208,10 @@ export async function storeCardOnChain(
     kit: StellarWalletsKit,
     params: StoreTokenParams
 ): Promise<StoreTokenResult> {
+    if (!isOnChainConfigured()) {
+        return { success: false, error: "On-chain storage not configured. Set NEXT_PUBLIC_SOROBAN_CONTRACT_ADDRESS and NEXT_PUBLIC_SOROBAN_RPC_URL." };
+    }
+
     try {
         // Build transaction
         const xdr = await buildStoreTokenTransaction(params);
@@ -154,6 +220,27 @@ export async function storeCardOnChain(
         return await signAndSubmitTransaction(kit, xdr, params.publicKey);
     } catch (error: any) {
         console.error("Store card error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Revoke a specific card on-chain with wallet signing
+ */
+export async function revokeCardOnChain(
+    kit: StellarWalletsKit,
+    publicKey: string,
+    tokenHash: string
+): Promise<StoreTokenResult> {
+    if (!isOnChainConfigured()) {
+        return { success: false, error: "On-chain storage not configured." };
+    }
+
+    try {
+        const xdr = await buildRevokeTokenTransaction(publicKey, tokenHash);
+        return await signAndSubmitTransaction(kit, xdr, publicKey);
+    } catch (error: any) {
+        console.error("Revoke card error:", error);
         return { success: false, error: error.message };
     }
 }

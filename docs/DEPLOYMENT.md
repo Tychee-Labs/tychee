@@ -112,14 +112,17 @@ The Account Abstraction (AA) contract is **shared infrastructure** deployed once
 
 ### Token Vault Contract
 
-The Token Vault is deployed **per SDK implementation**. Each developer using the Tychee SDK will have their own Token Vault instance:
+The Token Vault is deployed **per SDK implementation**. Each developer using the Tychee SDK will have their own Token Vault instance. **Multiple cards per wallet are supported** — each card is identified by its unique `token_hash`.
 
 | Function | Description |
 |----------|-------------|
 | `initialize(owner)` | Setup contract with owner |
-| `store_token(user, encrypted_payload, ...)` | Store encrypted card token |
-| `retrieve_token(user)` | Retrieve encrypted token |
-| `revoke_token(user)` | Revoke token access |
+| `store_token(user, encrypted_payload, token_hash, ...)` | Store encrypted card token (keyed by user + hash) |
+| `retrieve_token(user, token_hash)` | Retrieve a specific encrypted token |
+| `retrieve_all_tokens(user)` | Retrieve all tokens for a user |
+| `revoke_token(user, token_hash)` | Revoke a specific token |
+| `get_user_token_count(user)` | Get number of cards stored by a user |
+| `get_token_count()` | Get global token count |
 | `pause() / unpause()` | Emergency controls |
 
 ---
@@ -473,8 +476,10 @@ npm test
 - [ ] Token Vault contract deployed and initialized
 - [ ] SDK connects to both contracts successfully
 - [ ] Store token operation works
-- [ ] Retrieve token operation works
-- [ ] Revoke token operation works
+- [ ] Store multiple tokens for the same user
+- [ ] Retrieve specific token by hash
+- [ ] Retrieve all tokens for a user
+- [ ] Revoke specific token works (others remain)
 - [ ] Gasless transactions work (if AA enabled)
 
 ### Verify Contract State
@@ -570,7 +575,8 @@ ACCOUNT_ABSTRACTION_ADDRESS=<MAINNET_AA_CONTRACT_ID>
 | "Already initialized" | Contract already set up | Use existing contract or deploy new instance |
 | "Insufficient gas pool" | Gas pool depleted | Call `fund_gas_pool` with more funds |
 | "No sponsor set" | Missing sponsor for gasless tx | Call `set_sponsor` first |
-| "Token already exists" | User has existing token | Revoke first or use different user |
+| "Token with this hash already exists" | Same card already stored | Each unique card has a unique hash; this means the same card data was already tokenized |
+| "Contract is paused" | Owner paused the contract | Call `unpause()` as the contract owner |
 | WASM too large | Contract size exceeds limit | Optimize with `opt-level = "z"` |
 
 ### Debug Commands
@@ -631,4 +637,4 @@ stellar contract events --id <ID> --network testnet
 
 ---
 
-*Last updated: January 2026*
+*Last updated: March 2026*
