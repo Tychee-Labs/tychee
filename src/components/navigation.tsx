@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, TrendingUp, Gift, Store, Ticket, Users, Wallet, LogOut, Menu, X } from "lucide-react";
+import { CreditCard, TrendingUp, Gift, Store, Ticket, Users, Wallet, LogOut, Menu, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWallet } from "@/context/WalletContext";
+import { TryNowModal } from "@/components/TryNowModal";
 
 const navigation = [
     { name: "Cards", href: "/cards", icon: CreditCard },
@@ -20,12 +21,13 @@ export function Navigation() {
     const pathname = usePathname();
     const { publicKey, isConnected, isConnecting, connect, disconnect } = useWallet();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [tryNowOpen, setTryNowOpen] = useState(false);
 
     const truncateAddress = (address: string) => {
         return `${address.slice(0, 4)}...${address.slice(-4)}`;
     };
 
-    return (
+    return (<>
         <nav className="sticky top-0 z-40 w-full border-b border-border/40 glass backdrop-blur-lg">
             <div className="container mx-auto px-4">
                 <div className="flex h-16 items-center justify-between">
@@ -69,8 +71,17 @@ export function Navigation() {
                         })}
                     </div>
 
-                    {/* Right side: wallet + mobile menu button */}
+                    {/* Right side: Try Now + wallet + mobile menu button */}
                     <div className="flex items-center gap-2">
+                        {/* Try Now — always visible */}
+                        <button
+                            onClick={() => setTryNowOpen(true)}
+                            className="px-4 py-2 rounded-full text-sm font-semibold border border-primary/60 text-primary hover:bg-primary/10 hover:border-primary transition-all flex items-center gap-1.5"
+                        >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Try Now</span>
+                        </button>
+
                         {isConnected ? (
                             <div className="flex items-center gap-2">
                                 <span className="hidden sm:inline px-3 py-1.5 bg-muted rounded-full text-sm font-mono">
@@ -133,5 +144,8 @@ export function Navigation() {
                 )}
             </div>
         </nav>
-    );
+
+        {/* Try Now Modal — portal-style, rendered outside <nav> */}
+        {tryNowOpen && <TryNowModal onClose={() => setTryNowOpen(false)} />}
+    </>);
 }
