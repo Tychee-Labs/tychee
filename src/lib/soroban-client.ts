@@ -10,7 +10,7 @@ import {
     Address,
     nativeToScVal,
     Contract,
-    SorobanRpc,
+    rpc,
 } from "@stellar/stellar-sdk";
 import type { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit";
 
@@ -58,7 +58,7 @@ function hexToBytes(hex: string): Uint8Array {
 export async function buildStoreTokenTransaction(
     params: StoreTokenParams
 ): Promise<string> {
-    const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+    const server = new rpc.Server(SOROBAN_RPC_URL);
     const contract = new Contract(TOKEN_VAULT_ADDRESS);
 
     // Load account
@@ -70,7 +70,7 @@ export async function buildStoreTokenTransaction(
     const hashBytes = nativeToScVal(hexToBytes(params.tokenHash), { type: "bytes" });
     const last4 = nativeToScVal(params.last4Digits, { type: "string" });
     const network = nativeToScVal(params.network, { type: "string" });
-    const expiresAtVal = nativeToScVal(params.expiresAt, { type: "u64" });
+    const expiresAtVal = nativeToScVal(BigInt(params.expiresAt), { type: "u64" });
 
     // Build transaction
     const transaction = new TransactionBuilder(account, {
@@ -105,7 +105,7 @@ export async function buildRevokeTokenTransaction(
     publicKey: string,
     tokenHash: string
 ): Promise<string> {
-    const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+    const server = new rpc.Server(SOROBAN_RPC_URL);
     const contract = new Contract(TOKEN_VAULT_ADDRESS);
 
     const account = await server.getAccount(publicKey);
@@ -133,7 +133,7 @@ export async function buildRevokeTokenTransaction(
 export async function buildRetrieveAllTokensTransaction(
     publicKey: string
 ): Promise<string> {
-    const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+    const server = new rpc.Server(SOROBAN_RPC_URL);
     const contract = new Contract(TOKEN_VAULT_ADDRESS);
 
     const account = await server.getAccount(publicKey);
@@ -169,7 +169,7 @@ export async function signAndSubmitTransaction(
         });
 
         // Submit to network
-        const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+        const server = new rpc.Server(SOROBAN_RPC_URL);
         const tx = TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE);
         const response = await server.sendTransaction(tx);
 
