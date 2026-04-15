@@ -158,7 +158,7 @@ export default function CardsPage() {
             if (isSimulationMode) {
                 setLoadingStep("Simulation: Generating demo encryption key...");
                 const seed = new TextEncoder().encode("tychee:demo:v1:no-wallet-required");
-                const buf = await crypto.subtle.digest("SHA-256", seed);
+                const buf = await crypto.subtle.digest("SHA-256", seed as unknown as BufferSource);
                 encryptionKey = new Uint8Array(buf);
             } else {
                 setLoadingStep("Deriving encryption key from wallet...");
@@ -189,7 +189,7 @@ export default function CardsPage() {
                 await new Promise((r) => setTimeout(r, 1400));
                 const raw = await crypto.subtle.digest(
                     "SHA-256",
-                    new TextEncoder().encode(`demo:${tokenHash}:${Date.now()}`)
+                    new TextEncoder().encode(`demo:${tokenHash}:${Date.now()}`) as unknown as BufferSource
                 );
                 const hex = Array.from(new Uint8Array(raw))
                     .map((b) => b.toString(16).padStart(2, "0"))
