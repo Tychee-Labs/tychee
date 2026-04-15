@@ -175,6 +175,20 @@ export class ClientCrypto {
  */
 export class CardTokenizer {
     /**
+     * Valid card lengths per network.
+     * Sources: ISO/IEC 7812, EMVCo, and individual network specifications.
+     */
+    private static readonly VALID_LENGTHS: Record<string, number[]> = {
+        visa:       [13, 16, 19],   // 13 (legacy), 16 (standard), 19 (extended)
+        mastercard: [16],            // Always 16
+        amex:       [15],            // Always 15
+        discover:   [16, 19],        // 16 (standard), 19 (extended)
+        diners:     [14, 16, 19],    // 14 (Carte Blanche/International), 16-19 (US/Canada)
+        jcb:        [16, 17, 18, 19],// 16-19
+        rupay:      [16],            // Always 16
+    };
+
+    /**
      * Convert CardData to encrypted format
      */
     static async encryptCard(
@@ -226,7 +240,7 @@ export class CardTokenizer {
     }
 
     /**
-     * Validate card number using Luhn algorithm
+     * Validate card number using Luhn algorithm AND per-network length rules
      */
     static validateCardNumber(pan: string): boolean {
         // Remove spaces and dashes
@@ -237,6 +251,13 @@ export class CardTokenizer {
 
         // Must be 13-19 digits
         if (cleaned.length < 13 || cleaned.length > 19) return false;
+
+        // Detect network and enforce correct length
+        const network = this.detectCardNetwork(cleaned);
+        if (network !== 'unknown') {
+            const allowed = this.VALID_LENGTHS[network];
+            if (allowed && !allowed.includes(cleaned.length)) return false;
+        }
 
         // Luhn algorithm
         let sum = 0;
@@ -258,10 +279,20 @@ export class CardTokenizer {
     }
 
     /**
-     * Detect card network from PAN
+     * Detect card network from PAN (IIN/BIN prefix matching)
+     * Order matters: more specific prefixes are checked before broader ones.
      */
     static detectCardNetwork(pan: string): string {
         const cleaned = pan.replace(/[\s-]/g, '');
+
+        // Amex: starts with 34 or 37 (must check before Diners/JCB)
+        if (/^3[47]/.test(cleaned)) return 'amex';
+
+        // Diners Club: 300-305, 3095, 36, 38-39
+        if (/^(30[0-5]|3095|36|3[89])/.test(cleaned)) return 'diners';
+
+        // JCB: 3528-3589
+        if (/^35(2[89]|[3-8]\d)/.test(cleaned)) return 'jcb';
 
         // Visa: starts with 4
         if (/^4/.test(cleaned)) return 'visa';
@@ -271,11 +302,13 @@ export class CardTokenizer {
             return 'mastercard';
         }
 
-        // RuPay: starts with 60, 6521, 6522
-        if (/^(60|6521|6522)/.test(cleaned)) return 'rupay';
+        // Discover: 6011, 622126-622925, 644-649, 65
+        if (/^(6011|64[4-9]|65|622(1(2[6-9]|[3-9]\d)|[2-8]\d{2}|9([01]\d|2[0-5])))/.test(cleaned)) {
+            return 'discover';
+        }
 
-        // Amex: starts with 34 or 37
-        if (/^3[47]/.test(cleaned)) return 'amex';
+        // RuPay: 60, 65, 81, 82, 508 (checked after Discover to avoid overlap)
+        if (/^(60|65|81|82|508)/.test(cleaned)) return 'rupay';
 
         return 'unknown';
     }

@@ -34,7 +34,7 @@ export interface CardData {
     expiryMonth: string;
     expiryYear: string;
     cardholderName: string;
-    network: 'visa' | 'mastercard' | 'rupay' | 'amex';
+    network: 'visa' | 'mastercard' | 'rupay' | 'amex' | 'discover' | 'diners' | 'jcb';
 }
 
 /**
