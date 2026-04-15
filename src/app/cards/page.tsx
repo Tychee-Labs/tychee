@@ -29,7 +29,7 @@ interface CardFormData {
 }
 
 export default function CardsPage() {
-    const { publicKey, isConnected, deriveEncryptionKey, kit } = useWallet();
+    const { publicKey, isConnected, deriveEncryptionKey, kit, isSimulationMode } = useWallet();
     const [cards, setCards] = useState<StoredCard[]>([]);
     const [showAddCard, setShowAddCard] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -45,13 +45,18 @@ export default function CardsPage() {
 
     // Load saved cards from localStorage on mount (cache / fallback when on-chain is not configured)
     useEffect(() => {
-        if (publicKey) {
-            const savedCards = localStorage.getItem(`tychee_cards_${publicKey}`);
+        const key = isSimulationMode ? "sim_user" : publicKey;
+        if (key) {
+            const savedCards = localStorage.getItem(`tychee_cards_${key}`);
             if (savedCards) {
                 setCards(JSON.parse(savedCards));
+            } else {
+                setCards([]);
             }
+        } else {
+            setCards([]);
         }
-    }, [publicKey]);
+    }, [publicKey, isSimulationMode]);
 
     // Close modal on Escape key
     const handleEscKey = useCallback((e: KeyboardEvent) => {
@@ -104,7 +109,7 @@ export default function CardsPage() {
         e.preventDefault();
         setError(null);
 
-        if (!isConnected || !publicKey) {
+        if (!isConnected && !publicKey && !isSimulationMode) {
             setError("Please connect your wallet first");
             return;
         }
@@ -148,9 +153,17 @@ export default function CardsPage() {
                 network: network,
             };
 
-            // Step 4: Derive user-owned encryption key from wallet signature
-            setLoadingStep("Deriving encryption key from wallet...");
-            const encryptionKey = await deriveEncryptionKey();
+            // Step 4: Derive user-owned encryption key
+            let encryptionKey: Uint8Array;
+            if (isSimulationMode) {
+                setLoadingStep("Simulation: Generating demo encryption key...");
+                const seed = new TextEncoder().encode("tychee:demo:v1:no-wallet-required");
+                const buf = await crypto.subtle.digest("SHA-256", seed as unknown as BufferSource);
+                encryptionKey = new Uint8Array(buf);
+            } else {
+                setLoadingStep("Deriving encryption key from wallet...");
+                encryptionKey = await deriveEncryptionKey();
+            }
 
             // Step 5: Encrypt card using browser-compatible CardTokenizer
             setLoadingStep("Encrypting card data (AES-256-GCM)...");
@@ -171,7 +184,18 @@ export default function CardsPage() {
             // Step 6: Store on-chain with wallet signature
             let txHash: string | undefined;
 
-            if (kit && isOnChainConfigured()) {
+            if (isSimulationMode) {
+                setLoadingStep("Simulation: Saving token hash...");
+                await new Promise((r) => setTimeout(r, 1400));
+                const raw = await crypto.subtle.digest(
+                    "SHA-256",
+                    new TextEncoder().encode(`demo:${tokenHash}:${Date.now()}`) as unknown as BufferSource
+                );
+                const hex = Array.from(new Uint8Array(raw))
+                    .map((b) => b.toString(16).padStart(2, "0"))
+                    .join("");
+                txHash = `0x${hex}`;
+            } else if (kit && isOnChainConfigured() && publicKey) {
                 setLoadingStep("Requesting wallet signature for on-chain storage...");
 
                 const storeParams: StoreTokenParams = {
@@ -220,9 +244,10 @@ export default function CardsPage() {
             };
 
             // Save to state and localStorage (serves as local cache for on-chain data)
+            const storageKey = isSimulationMode ? "sim_user" : publicKey;
             const updatedCards = [...cards, newCard];
             setCards(updatedCards);
-            localStorage.setItem(`tychee_cards_${publicKey}`, JSON.stringify(updatedCards));
+            localStorage.setItem(`tychee_cards_${storageKey}`, JSON.stringify(updatedCards));
 
             // Log success
             console.log("Card tokenized:", {
@@ -249,13 +274,17 @@ export default function CardsPage() {
     };
 
     const handleRevokeCard = async (cardId: string) => {
-        if (!publicKey) return;
+        if (!publicKey && !isSimulationMode) return;
         if (!confirm("Are you sure you want to revoke this card? This action cannot be undone.")) return;
 
         const card = cards.find(c => c.id === cardId);
 
         // If the card was stored on-chain, revoke it on-chain first
-        if (card?.txHash && card?.tokenHash && kit && isOnChainConfigured()) {
+        if (isSimulationMode) {
+            setIsLoading(true);
+            setLoadingStep("Simulation: Revoking card...");
+            await new Promise((r) => setTimeout(r, 1000));
+        } else if (card?.txHash && card?.tokenHash && kit && isOnChainConfigured() && publicKey) {
             setIsLoading(true);
             setLoadingStep("Revoking card on-chain...");
 
@@ -284,9 +313,10 @@ export default function CardsPage() {
         }
 
         // Remove from local state and cache
+        const storageKey = isSimulationMode ? "sim_user" : publicKey;
         const updatedCards = cards.filter(c => c.id !== cardId);
         setCards(updatedCards);
-        localStorage.setItem(`tychee_cards_${publicKey}`, JSON.stringify(updatedCards));
+        localStorage.setItem(`tychee_cards_${storageKey}`, JSON.stringify(updatedCards));
 
         setIsLoading(false);
         setLoadingStep("");
@@ -325,7 +355,7 @@ export default function CardsPage() {
                 </div>
                 <button
                     onClick={() => setShowAddCard(true)}
-                    disabled={!isConnected}
+                    disabled={!isConnected && !isSimulationMode}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-accent rounded-full text-white font-medium hover:shadow-glow transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-5 h-5" />
@@ -334,7 +364,7 @@ export default function CardsPage() {
             </div>
 
             {/* Wallet Connection Warning */}
-            {!isConnected && (
+            {!isConnected && !isSimulationMode && (
                 <div className="glass-card border-yellow-500/30 bg-yellow-500/10">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
@@ -351,7 +381,7 @@ export default function CardsPage() {
             )}
 
             {/* On-chain config warning */}
-            {isConnected && !isOnChainConfigured() && (
+            {isConnected && !isOnChainConfigured() && !isSimulationMode && (
                 <div className="glass-card border-yellow-500/30 bg-yellow-500/10">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
@@ -468,12 +498,12 @@ export default function CardsPage() {
                 {/* Add New Card Placeholder */}
                 <button
                     onClick={() => setShowAddCard(true)}
-                    disabled={!isConnected}
+                    disabled={!isConnected && !isSimulationMode}
                     className="premium-card min-h-[200px] flex flex-col items-center justify-center text-muted-foreground hover:text-foreground border-dashed disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus className="w-12 h-12 mb-4" />
                     <div className="font-semibold">Add New Card</div>
-                    {!isConnected && <div className="text-xs mt-2">Connect wallet first</div>}
+                    {!isConnected && !isSimulationMode && <div className="text-xs mt-2">Connect wallet first</div>}
                 </button>
             </div>
 

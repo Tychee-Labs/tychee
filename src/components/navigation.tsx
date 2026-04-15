@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, TrendingUp, Gift, Store, Ticket, Users, Wallet, LogOut, Menu, X } from "lucide-react";
+import { CreditCard, TrendingUp, Gift, Store, Ticket, Users, Wallet, LogOut, Menu, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWallet } from "@/context/WalletContext";
 
@@ -18,14 +18,14 @@ const navigation = [
 
 export function Navigation() {
     const pathname = usePathname();
-    const { publicKey, isConnected, isConnecting, connect, disconnect } = useWallet();
+    const { publicKey, isConnected, isConnecting, connect, disconnect, isSimulationMode, toggleSimulationMode } = useWallet();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const truncateAddress = (address: string) => {
         return `${address.slice(0, 4)}...${address.slice(-4)}`;
     };
 
-    return (
+    return (<>
         <nav className="sticky top-0 z-40 w-full border-b border-border/40 glass backdrop-blur-lg">
             <div className="container mx-auto px-4">
                 <div className="flex h-16 items-center justify-between">
@@ -69,9 +69,33 @@ export function Navigation() {
                         })}
                     </div>
 
-                    {/* Right side: wallet + mobile menu button */}
+                    {/* Right side: Simulation Mode + wallet + mobile menu button */}
                     <div className="flex items-center gap-2">
-                        {isConnected ? (
+                        {/* Simulation Mode button */}
+                        <button
+                            onClick={toggleSimulationMode}
+                            className={cn(
+                                "px-4 py-2 rounded-full text-sm font-semibold border transition-all flex items-center gap-1.5",
+                                isSimulationMode 
+                                    ? "bg-green-500/10 border-green-500/50 text-green-400 hover:bg-green-500/20" 
+                                    : "border-primary/60 text-primary hover:bg-primary/10 hover:border-primary"
+                            )}
+                        >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">
+                                {isSimulationMode ? "Exit Simulation" : "Simulation Mode"}
+                            </span>
+                        </button>
+
+                        {isSimulationMode ? (
+                            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/20">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                <span className="text-sm font-medium text-green-400">Simulation Active</span>
+                            </div>
+                        ) : isConnected ? (
                             <div className="flex items-center gap-2">
                                 <span className="hidden sm:inline px-3 py-1.5 bg-muted rounded-full text-sm font-mono">
                                     {truncateAddress(publicKey!)}
@@ -133,5 +157,5 @@ export function Navigation() {
                 )}
             </div>
         </nav>
-    );
+    </>);
 }

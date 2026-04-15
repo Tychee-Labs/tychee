@@ -22,6 +22,8 @@ interface WalletContextType {
     signAuthEntry: (message: string) => Promise<SignResult>;
     deriveEncryptionKey: () => Promise<Uint8Array>;
     kit: StellarWalletsKit | null;
+    isSimulationMode: boolean;
+    toggleSimulationMode: () => void;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -33,12 +35,15 @@ const WalletContext = createContext<WalletContextType>({
     signAuthEntry: async () => ({ signature: "", signerAddress: "" }),
     deriveEncryptionKey: async () => new Uint8Array(),
     kit: null,
+    isSimulationMode: false,
+    toggleSimulationMode: () => { },
 });
 
 export function WalletProvider({ children }: { children: ReactNode }) {
     const [publicKey, setPublicKey] = useState<string | null>(null);
     const [isConnecting, setIsConnecting] = useState(false);
     const [kit, setKit] = useState<StellarWalletsKit | null>(null);
+    const [isSimulationMode, setIsSimulationMode] = useState(false);
 
     // Initialize the wallet kit on client side
     useEffect(() => {
@@ -54,6 +59,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         if (savedPublicKey) {
             setPublicKey(savedPublicKey);
         }
+
+        // Check simulation mode
+        const savedSimMode = localStorage.getItem("tychee_simulation_mode");
+        if (savedSimMode === "true") {
+            setIsSimulationMode(true);
+        }
+    }, []);
+
+    const toggleSimulationMode = useCallback(() => {
+        setIsSimulationMode(prev => {
+            const newVal = !prev;
+            localStorage.setItem("tychee_simulation_mode", String(newVal));
+            return newVal;
+        });
     }, []);
 
     const connect = useCallback(async () => {
@@ -178,6 +197,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 signAuthEntry,
                 deriveEncryptionKey,
                 kit,
+                isSimulationMode,
+                toggleSimulationMode,
             }}
         >
             {children}
