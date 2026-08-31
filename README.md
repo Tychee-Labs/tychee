@@ -290,7 +290,9 @@ npm run test:api
 
 ##  Contributing
 
-Contributions welcome! Please read our [contributing guidelines](.github/CONTRIBUTING.md). All contributors must sign our Contributor License Agreement (CLA).
+Contributions welcome! Please read our [contributing guidelines](.github/CONTRIBUTING.md) first.
+
+**Note on licensing:** Tychee is licensed under the Business Source License 1.1, not a permissive licence, and all contributions require agreement to our [Contributor License Agreement](CLA.md). You agree by ticking the CLA box in the pull request template — there's no separate signing step. Please read it before investing time in a contribution.
 
 ## License
 

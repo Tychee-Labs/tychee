@@ -11,9 +11,26 @@ Before contributing, you must sign our Contributor License Agreement (CLA). This
 
 ### CLA Process
 
-1. **Sign the CLA**: Please visit [CLA Link] (to be added) to sign our Contributor License Agreement
-2. **Link your PR**: When submitting a pull request, reference your CLA signature
-3. **First-time contributors**: Your first PR will require CLA verification before merging
+There's no bot and no separate signing service. The process is:
+
+1. **Read [`CLA.md`](../CLA.md)** in the repository root
+2. **Open your pull request** as normal
+3. **Tick the CLA checkbox** in the pull request template. That ticked box,
+   recorded in your PR, is the record of your agreement
+4. **A maintainer verifies it** before merging
+
+Please actually read it rather than ticking through. Tychee is commercially
+licensed under BSL 1.1 and converts to Apache 2.0 on January 27, 2029, so the
+CLA grants Tychee Labs rights in your contribution including the right to
+include it in commercially licensed distributions. That's a real grant, not a
+formality.
+
+If you're contributing on behalf of an employer, confirm you're authorised to
+agree on their behalf before you tick the box.
+
+If you'd rather not agree, say so in the pull request. We'll close it without
+prejudice — that's a reasonable position and we'd much rather you raise it
+before doing the work than after.
 
 ## How to Contribute
 
