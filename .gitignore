@@ -62,6 +62,9 @@ test-results/
 secrets/
 .secrets/
 
+# Internal issue drafts — must not be published, see the notes in that directory
+.github/ISSUE_DRAFTS/
+
 # Misc
 *.bak
 *.tmp
